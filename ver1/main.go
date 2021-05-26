@@ -22,6 +22,13 @@ var data = make([]post, 0)
 func init() {
 	tpl = template.Must(template.ParseGlob("./*.html"))
 }
+func show(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "text/html; charset=utf-8")
+	err := tpl.ExecuteTemplate(res, "front_template.html", posts)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
 func front(res http.ResponseWriter, req *http.Request) {
 	name := req.FormValue("name")
@@ -48,7 +55,7 @@ func search(res http.ResponseWriter, req *http.Request) {
 	if len(post_byname) > 0 {
 		data = post_byname
 	} else {
-		data = []post{post{"not found!", "", time.Now()}}
+		data = []post{{"not found!", "", time.Now()}}
 	}
 
 	res.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -60,7 +67,7 @@ func search(res http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-
+	http.Handle("/show", http.HandlerFunc(show))
 	http.Handle("/", http.HandlerFunc(front))
 	http.Handle("/search", http.HandlerFunc(search))
 	http.ListenAndServe(":8080", nil)
