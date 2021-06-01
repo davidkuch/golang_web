@@ -67,7 +67,34 @@ func search(res http.ResponseWriter, req *http.Request) {
 	post_byname = nil
 }
 
+func names(res http.ResponseWriter, req *http.Request) {
+	var names []string
+	for _, note := range posts {
+		name := note.Name
+		if !find(names, name) {
+			names = append(names, name)
+		}
+
+	}
+	res.Header().Set("Content-Type", "text/html; charset=utf-8")
+	err := tpl.ExecuteTemplate(res, "names.html", names)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+}
+
+func find(slice []string, val string) bool {
+	for _, item := range slice {
+		if item == val {
+			return true
+		}
+	}
+	return false
+}
+
 func main() {
+	http.Handle("/names", http.HandlerFunc(names))
 	http.Handle("/", http.HandlerFunc(show))
 	http.Handle("/show", http.HandlerFunc(show))
 	http.Handle("/post", http.HandlerFunc(send))

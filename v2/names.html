@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<head>
+<title>Notes</title>
+</head>
+<body>
+<h1>see the names...</h1>
+{{range .}}
+<section>
+
+    <form action="/search" method="POST">
+        <input type="submit" value="{{.}}" name="search_name" />
+    </form>
+</section>
+{{end}}
+
+</body>
