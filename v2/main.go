@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"text/template"
@@ -18,6 +19,7 @@ type post struct {
 var posts = make([]post, 0)
 var post_byname = make([]post, 0)
 var data = make([]post, 0)
+var users = make(map[string]string)
 
 func init() {
 	tpl = template.Must(template.ParseGlob("./*.html"))
@@ -93,7 +95,38 @@ func find(slice []string, val string) bool {
 	return false
 }
 
+func registery(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "text/html; charset=utf-8")
+	err := tpl.ExecuteTemplate(res, "registery.html", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func register(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "text/html; charset=utf-8")
+	name := req.FormValue("name")
+	password := req.FormValue("password")
+
+	if _, ok := users[name]; ok {
+		err := tpl.ExecuteTemplate(res, "registery.html", name+"already exists")
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+
+	users[name] = password
+	err := tpl.ExecuteTemplate(res, "front_template.html", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(users)
+}
+
 func main() {
+	http.Handle("/registery", http.HandlerFunc(registery))
+	http.Handle("/register", http.HandlerFunc(register))
 	http.Handle("/names", http.HandlerFunc(names))
 	http.Handle("/", http.HandlerFunc(show))
 	http.Handle("/show", http.HandlerFunc(show))
