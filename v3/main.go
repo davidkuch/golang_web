@@ -1,12 +1,14 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"text/template"
 	"time"
 
+	_ "github.com/lib/pq"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -17,6 +19,14 @@ type post struct {
 	Post string
 	Date time.Time
 }
+
+const (
+	host     = "localhost"
+	port     = 5432
+	user     = "postgres"
+	password = "tbhsuseumr1"
+	dbname   = "skool"
+)
 
 var posts = make([]post, 0)
 var post_byname = make([]post, 0)
@@ -123,7 +133,7 @@ func register(res http.ResponseWriter, req *http.Request) {
 		}
 		return
 	}
-
+	InsertUser(name, password)
 	users[name] = password
 	err := tpl.ExecuteTemplate(res, "front.html", nil)
 	if err != nil {
@@ -169,13 +179,15 @@ func login(res http.ResponseWriter, req *http.Request) {
 
 func front(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "text/html; charset=utf-8")
-	err := tpl.ExecuteTemplate(res, "front.html", posts)
+	err := tpl.ExecuteTemplate(res, "front.html", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
 func main() {
+	println(sql.ErrNoRows)
+
 	http.Handle("/registery", http.HandlerFunc(registery))
 	http.Handle("/register", http.HandlerFunc(register))
 	http.Handle("/loginery", http.HandlerFunc(loginery))
