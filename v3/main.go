@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
 	"text/template"
@@ -31,8 +30,6 @@ const (
 var posts = make([]post, 0)
 var post_byname = make([]post, 0)
 var data = make([]post, 0)
-var users = make(map[string]string)
-var sessions = make(map[string]string)
 
 func init() {
 	tpl = template.Must(template.ParseGlob("./*.html"))
@@ -52,8 +49,9 @@ func send(res http.ResponseWriter, req *http.Request) {
 		log.Fatal(err)
 	}
 	id := cookie.Value
-	name := sessions[id]
+	name := getSession(id)
 	if note != "" {
+		setPost(name, note, time.Now())
 		posts = append(posts, post{name, note, time.Now()})
 	}
 
@@ -126,7 +124,7 @@ func register(res http.ResponseWriter, req *http.Request) {
 	name := req.FormValue("name")
 	password := req.FormValue("password")
 
-	if _, ok := users[name]; ok {
+	if isUser(name) {
 		err := tpl.ExecuteTemplate(res, "registery.html", name+" already exists")
 		if err != nil {
 			log.Fatal(err)
@@ -134,12 +132,10 @@ func register(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	InsertUser(name, password)
-	users[name] = password
 	err := tpl.ExecuteTemplate(res, "front.html", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(users)
 }
 
 func loginery(res http.ResponseWriter, req *http.Request) {
@@ -154,7 +150,7 @@ func login(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "text/html; charset=utf-8")
 	name := req.FormValue("name")
 	password := req.FormValue("password")
-	if users[name] == password {
+	if isUserCreds(name, password) {
 		id := uuid.NewV4()
 		cookie := &http.Cookie{
 			Name:     "session",
@@ -162,7 +158,7 @@ func login(res http.ResponseWriter, req *http.Request) {
 			HttpOnly: true,
 			Path:     "/",
 		}
-		sessions[id.String()] = name
+		setSession(id.String(), name)
 		http.SetCookie(res, cookie)
 
 		err := tpl.ExecuteTemplate(res, "noteable.html", nil)
