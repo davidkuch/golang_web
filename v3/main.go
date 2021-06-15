@@ -19,14 +19,6 @@ type post struct {
 	Date time.Time
 }
 
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "postgres"
-	password = "tbhsuseumr1"
-	dbname   = "skool"
-)
-
 var posts = make([]post, 0)
 var post_byname = make([]post, 0)
 var data = make([]post, 0)
