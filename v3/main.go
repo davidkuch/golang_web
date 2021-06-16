@@ -19,16 +19,14 @@ type post struct {
 	Date time.Time
 }
 
-var posts = make([]post, 0)
-var post_byname = make([]post, 0)
-var data = make([]post, 0)
-
 func init() {
 	tpl = template.Must(template.ParseGlob("./*.html"))
 }
+
 func show(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "text/html; charset=utf-8")
-	err := tpl.ExecuteTemplate(res, "noteable.html", posts)
+	allposts := getAllPosts()
+	err := tpl.ExecuteTemplate(res, "noteable.html", allposts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -37,6 +35,7 @@ func show(res http.ResponseWriter, req *http.Request) {
 func send(res http.ResponseWriter, req *http.Request) {
 	note := req.FormValue("note")
 	cookie, err := req.Cookie("session")
+	var posts = make([]post, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,16 +55,11 @@ func send(res http.ResponseWriter, req *http.Request) {
 
 func search(res http.ResponseWriter, req *http.Request) {
 	search_name := req.FormValue("search_name")
+	var data = make([]post, 0)
 	if search_name != "" {
-		for _, note := range posts {
-			if note.Name == search_name {
-				post_byname = append(post_byname, note)
-			}
-		}
+		data = getPostByname(search_name)
 	}
-	if len(post_byname) > 0 {
-		data = post_byname
-	} else {
+	if len(data) == 0 {
 		data = []post{{"not found!", "", time.Now()}}
 	}
 
@@ -74,33 +68,16 @@ func search(res http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	post_byname = nil
 }
 
 func names(res http.ResponseWriter, req *http.Request) {
-	var names []string
-	for _, note := range posts {
-		name := note.Name
-		if !find(names, name) {
-			names = append(names, name)
-		}
-
-	}
+	names := getNames()
 	res.Header().Set("Content-Type", "text/html; charset=utf-8")
 	err := tpl.ExecuteTemplate(res, "names.html", names)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-}
-
-func find(slice []string, val string) bool {
-	for _, item := range slice {
-		if item == val {
-			return true
-		}
-	}
-	return false
 }
 
 func registery(res http.ResponseWriter, req *http.Request) {

@@ -116,8 +116,87 @@ VALUES ($1, $2, $3)`
 
 }
 
-func getPosts() []string {
+func getAllPosts() []post {
 	connect()
-	//sqlstt := `select * from posts`
-	//under construction
+	var result = make([]post, 0)
+	sqlstt := `select username,post_time,post from posts`
+	rows, err := db.Query(sqlstt)
+	if err != nil {
+		// handle this error better than this
+		panic(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var name string
+		var post_time time.Time
+		var note string
+		err = rows.Scan(&name, &post_time, &note)
+		if err != nil {
+			// handle this error
+			panic(err)
+		}
+		result = append(result, post{name, note, post_time})
+	}
+	// get any error encountered during iteration
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
+
+func getPostByname(search_name string) []post {
+	connect()
+	var result = make([]post, 0)
+	sqlstt := `select username,post_time,post from posts where username=$1`
+	rows, err := db.Query(sqlstt, search_name)
+	if err != nil {
+		// handle this error better than this
+		panic(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var name string
+		var post_time time.Time
+		var note string
+		err = rows.Scan(&name, &post_time, &note)
+		if err != nil {
+			// handle this error
+			panic(err)
+		}
+		result = append(result, post{name, note, post_time})
+	}
+	// get any error encountered during iteration
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
+
+func getNames() []string {
+	connect()
+	var names = make([]string, 0)
+	sqlstt := `select username from users`
+	rows, err := db.Query(sqlstt)
+	if err != nil {
+		// handle this error better than this
+		panic(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var name string
+		err = rows.Scan(&name)
+		if err != nil {
+			// handle this error
+			panic(err)
+		}
+		names = append(names, name)
+	}
+	// get any error encountered during iteration
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+	return names
 }
