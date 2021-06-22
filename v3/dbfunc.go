@@ -200,3 +200,32 @@ func getNames() []string {
 	}
 	return names
 }
+
+func getLastPosts(num int) []post {
+	connect()
+	sqlstt := `select username , post_time, post from posts order by post_time limit 3 `
+	var result = make([]post, 0)
+	rows, err := db.Query(sqlstt)
+	if err != nil {
+		// handle this error better than this
+		panic(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var name string
+		var post_time time.Time
+		var note string
+		err = rows.Scan(&name, &post_time, &note)
+		if err != nil {
+			// handle this error
+			panic(err)
+		}
+		result = append(result, post{name, note, post_time})
+	}
+	// get any error encountered during iteration
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+	return result
+}

@@ -1,15 +1,46 @@
 package main
 
 import (
-	"database/sql"
+	"context"
+	"fmt"
+	"html/template"
 	"log"
 	"net/http"
-	"text/template"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	_ "github.com/lib/pq"
 	uuid "github.com/satori/go.uuid"
 )
+
+var ctx = context.Background()
+
+func redisSetSession(name string, uuid string) {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
+
+	err := rdb.Set(ctx, uuid, name, 0).Err()
+	if err != nil {
+		panic(err)
+	}
+}
+
+func redisGetSession(uuid string) string {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
+	name, err := rdb.Get(ctx, uuid).Result()
+	if err != nil {
+		fmt.Println(err)
+	}
+	return name
+
+}
 
 var tpl *template.Template
 
@@ -40,7 +71,8 @@ func send(res http.ResponseWriter, req *http.Request) {
 		log.Fatal(err)
 	}
 	id := cookie.Value
-	name := getSession(id)
+	//name := getSession(id)
+	name := redisGetSession(id)
 	if note != "" {
 		setPost(name, note, time.Now())
 		posts = append(posts, post{name, note, time.Now()})
@@ -127,13 +159,15 @@ func login(res http.ResponseWriter, req *http.Request) {
 			HttpOnly: true,
 			Path:     "/",
 		}
-		setSession(id.String(), name)
+		//setSession(id.String(), name)
+		redisSetSession(name, id.String())
 		http.SetCookie(res, cookie)
-
-		err := tpl.ExecuteTemplate(res, "noteable.html", nil)
+		data := getLastPosts(3)
+		err := tpl.ExecuteTemplate(res, "noteable.html", data)
 		if err != nil {
 			log.Fatal(err)
 		}
+		return
 	}
 
 	err := tpl.ExecuteTemplate(res, "login.html", "one of the credentials is not correct")
@@ -151,8 +185,8 @@ func front(res http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	println(sql.ErrNoRows)
-
+	fs := http.FileServer(http.Dir("./style"))
+	http.Handle("/style/", http.StripPrefix("/style/", fs))
 	http.Handle("/registery", http.HandlerFunc(registery))
 	http.Handle("/register", http.HandlerFunc(register))
 	http.Handle("/loginery", http.HandlerFunc(loginery))
@@ -162,6 +196,7 @@ func main() {
 	http.Handle("/show", http.HandlerFunc(show))
 	http.Handle("/send", http.HandlerFunc(send))
 	http.Handle("/search", http.HandlerFunc(search))
+
 	http.ListenAndServe(":8080", nil)
 
 }
