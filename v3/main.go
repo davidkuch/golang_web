@@ -1,46 +1,15 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"time"
 
-	"github.com/go-redis/redis/v8"
 	_ "github.com/lib/pq"
 	uuid "github.com/satori/go.uuid"
 )
-
-var ctx = context.Background()
-
-func redisSetSession(name string, uuid string) {
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
-	})
-
-	err := rdb.Set(ctx, uuid, name, 0).Err()
-	if err != nil {
-		panic(err)
-	}
-}
-
-func redisGetSession(uuid string) string {
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
-	})
-	name, err := rdb.Get(ctx, uuid).Result()
-	if err != nil {
-		fmt.Println(err)
-	}
-	return name
-
-}
 
 var tpl *template.Template
 
@@ -71,9 +40,15 @@ func send(res http.ResponseWriter, req *http.Request) {
 		log.Fatal(err)
 	}
 	id := cookie.Value
+	cookie.MaxAge = 60 * 5
+	http.SetCookie(res, cookie)
 	//name := getSession(id)
 	name := redisGetSession(id)
+	redisSetSession(name, id)
 	if note != "" {
+		if num, exists := samePost(note, name); exists {
+			note = fmt.Sprintf(note+"is posted already %d times", num)
+		}
 		setPost(name, note, time.Now())
 		posts = append(posts, post{name, note, time.Now()})
 	}
@@ -157,6 +132,7 @@ func login(res http.ResponseWriter, req *http.Request) {
 			Name:     "session",
 			Value:    id.String(),
 			HttpOnly: true,
+			MaxAge:   60 * 5,
 			Path:     "/",
 		}
 		//setSession(id.String(), name)

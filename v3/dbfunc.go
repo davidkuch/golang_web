@@ -33,6 +33,37 @@ func connect() {
 	}
 }
 
+func samePost(note string, name string) (int, bool) {
+	connect()
+	var num int
+	sqlstt := "select count(posts) from posts where username =$1 and post = $2 "
+	rows, err := db.Query(sqlstt, name, note)
+	if err != nil {
+		// handle this error better than this
+		panic(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		err = rows.Scan(&num)
+		if err != nil {
+			// handle this error
+			panic(err)
+		}
+	}
+	// get any error encountered during iteration
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+	var exists bool
+	if num > 0 {
+		exists = true
+	} else {
+		exists = false
+	}
+	return num, exists
+}
+
 func InsertUser(name string, userpassword string) {
 	connect()
 	sqlStatement := `
@@ -61,32 +92,32 @@ func isUserCreds(name string, userpassword string) (stt bool) {
 
 }
 
-func setSession(id string, name string) {
-	connect()
-	sqlStatement := `
-INSERT INTO sessions (username,uuid)
-VALUES ($1, $2)`
-	_, err := db.Exec(sqlStatement, name, id)
-	if err != nil {
-		panic(err)
-	}
-}
+//func setSession(id string, name string) {
+//	connect()
+//	sqlStatement := `
+//INSERT INTO sessions (username,uuid)
+//VALUES ($1, $2)`
+//	_, err := db.Exec(sqlStatement, name, id)
+//	if err != nil {
+//		panic(err)
+//	}
+//}
 
-func getSession(id string) (name string) {
-	connect()
-	sqlstt := "select username from sessions where uuid=$1;"
-	var tmpname string
-	row := db.QueryRow(sqlstt, id)
-	switch err := row.Scan(&tmpname); err {
-	case sql.ErrNoRows:
-		return "no such"
-	case nil:
-		return tmpname
-	default:
-		panic(err)
-	}
+//func getSession(id string) (name string) {
+//	connect()
+//	sqlstt := "select username from sessions where uuid=$1;"
+//	var tmpname string
+//	row := db.QueryRow(sqlstt, id)
+//	switch err := row.Scan(&tmpname); err {
+//	case sql.ErrNoRows:
+//		return "no such"
+//	case nil:
+//		return tmpname
+//	default:
+//		panic(err)
+//	}
 
-}
+//}
 
 func isUser(name string) bool {
 	connect()
